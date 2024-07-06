@@ -4,8 +4,12 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 5000;
+const corsOptions = {
+  origin: 'https://your-vercel-app.vercel.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+};
 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
 mongoose.connect('mongodb+srv://nivinprasad2004:uhHJhs8EXuWHAa0k@cluster0.zvjplnk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
