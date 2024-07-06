@@ -4,18 +4,19 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 5000;
-const corsOptions = {
-  origin: 'https://your-vercel-app.vercel.app',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-};
 
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(bodyParser.json());
 
-mongoose.connect('mongodb+srv://nivinprasad2004:uhHJhs8EXuWHAa0k@cluster0.zvjplnk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+// Replace this connection string with your actual MongoDB Atlas URI from Render environment variables
+const MONGODB_URI = 'mongodb+srv://nivinprasad2004:uhHJhs8EXuWHAa0k@cluster0.zvjplnk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-});
+})
+.then(() => console.log('MongoDB connected'))
+.catch((err) => console.error('MongoDB connection error:', err));
 
 const TodoSchema = new mongoose.Schema({
   task: String,
@@ -26,31 +27,45 @@ const TodoSchema = new mongoose.Schema({
 const Todo = mongoose.model('Todo', TodoSchema);
 
 app.get('/todos', async (req, res) => {
-  const todos = await Todo.find();
-  res.json(todos);
+  try {
+    const todos = await Todo.find();
+    res.json(todos);
+  } catch (error) {
+    console.error('Error fetching todos:', error);
+    res.status(500).json({ error: 'Failed to fetch todos' });
+  }
 });
 
 app.post('/todos', async (req, res) => {
-  const newTodo = new Todo({
-    task: req.body.task,
-    completed: req.body.completed,
-    isEditing: req.body.isEditing,
-  });
-  await newTodo.save();
-  res.json(newTodo);
+  try {
+    const { task, completed, isEditing } = req.body;
+    const newTodo = new Todo({
+      task,
+      completed,
+      isEditing,
+    });
+    const savedTodo = await newTodo.save();
+    res.json(savedTodo);
+  } catch (error) {
+    console.error('Error adding todo:', error);
+    res.status(500).json({ error: 'Failed to add todo' });
+  }
 });
 
 app.put('/todos/:id', async (req, res) => {
-  const updatedTodo = await Todo.findByIdAndUpdate(
-    req.params.id,
-    {
-      task: req.body.task,
-      completed: req.body.completed,
-      isEditing: req.body.isEditing,
-    },
-    { new: true }
-  );
-  res.json(updatedTodo);
+  try {
+    const { id } = req.params;
+    const { task, completed, isEditing } = req.body;
+    const updatedTodo = await Todo.findByIdAndUpdate(
+      id,
+      { task, completed, isEditing },
+      { new: true }
+    );
+    res.json(updatedTodo);
+  } catch (error) {
+    console.error('Error updating todo:', error);
+    res.status(500).json({ error: 'Failed to update todo' });
+  }
 });
 
 app.delete('/todos/:id', async (req, res) => {
@@ -60,9 +75,10 @@ app.delete('/todos/:id', async (req, res) => {
     if (!deletedTodo) {
       return res.status(404).send({ message: 'Todo not found' });
     }
-    res.status(200).send(deletedTodo);
+    res.status(200).json(deletedTodo);
   } catch (error) {
-    res.status(500).send({ message: 'Error deleting todo', error });
+    console.error('Error deleting todo:', error);
+    res.status(500).json({ error: 'Failed to delete todo' });
   }
 });
 
